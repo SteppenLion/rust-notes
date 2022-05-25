@@ -27,6 +27,10 @@ cargo init
 cargo
 # Rust's package manager
 cargo -h
+# Run the main.rs script with quiet mode
+cargo run -q
+# release build
+cargo run -q --release
 ```
 
 ## Cargo Clippy
