@@ -15,7 +15,7 @@ Invalid, data";
             continue;
         }
 
-        let fields:Vec<_> = records.split(',').map(|field| field.trim()).collect();
+        let fields: Vec<_> = records.split(',').map(|field| field.trim()).collect();
         if cfg!(debug_assertions) {
             eprint!("debug: {:?} -> {:?}", records, fields);
         }
