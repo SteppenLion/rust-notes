@@ -21,6 +21,13 @@ mkdir my_project
 cargo init
 ```
 
+## only one file
+
+```sh
+rustc example.rs
+./example.exe
+```
+
 ## Cargo Commnads
 
 ```sh
