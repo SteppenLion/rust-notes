@@ -76,7 +76,6 @@ cargo run -q --release
 - https://fasterthanli.me/
 - https://blog.burntsushi.net/
 - https://manishearth.github.io/
-- https://steveklabnik.com/writing
 - https://ianjk.com/rust-gamejam/
 - https://lucumr.pocoo.org/tags/rust/
 

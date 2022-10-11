@@ -200,3 +200,136 @@ fn main() {
     let x = (let y = 6);
 }
 ```
+
+- the `let y = 6` statement does not return value so there isn't anything for `x` to bind to. In other languages you can do this assignment but that is not case in Rust.
+- Expresions evaluate to a value and make up most of the rest of the code. Calling a funcion is an expresion also calling a macro is expresion. A curly scope block created with curly brackets is an expresion. E.g.:
+
+```rust
+fn main() {
+  let y = {
+    let x = 3;
+    x + 1
+  };
+  println!("The value of y is : {y}");
+}
+```
+
+- the value gets bound to y as part of `let` statement. NOTE: that line `x+1` doesn't include ending semicolon. If you add semicolon to the end of an expresion you turn it inot a statement and it will hen not return value.
+
+## Functions with Return values
+
+- functions can return values to the code that calls them. We must declare their type with after arrow `->`.
+- return value of the funcion is synonymous with the value of the final expresion in the block of the body of a funcion.
+- you can return early by using the `return` keyword and specifying a value, but most funcion return the last expresion implicitly
+
+```rust
+fn five() -> i32 {
+  5 // no semivcolon because it is expression not a statement
+}
+
+fn main() {
+  let x = five();
+  println!("The value of x is: {x}");
+}
+
+// above code is same as below
+#![allow(unused)]
+fn main() {
+let x = 5;
+}
+```
+
+- another example:
+
+```rust
+fn main() {
+    let x = plus_one(5);
+
+    println!("The value of x is: {x}");
+}
+
+fn plus_one(x: i32) -> i32 {
+    x + 1
+}
+// removing the semicolon
+fn main() {
+    let x = plus_one(5);
+
+    println!("The value of x is: {x}");
+}
+
+fn plus_one(x: i32) -> i32 {
+    x + 1; // ERROR -> changing it from an expression to a statement, we’ll get an error.
+}
+```
+
+- statement doesn't evaluate to a value which is expressed by `()` , the unit type. Therefor nothing is returned, which contradicts the function definition and results in an error
+
+## Control flow
+
+### if Expresions
+
+```rust
+fn main(){
+  let number = 3;
+  if number < 5 {
+    println!("contition true");
+  }
+  else {
+    println!("Contition false");
+  }
+}
+```
+
+- contition must be a bool, if not we got an error
+- rust will not try to convert non-Boolean types to Boolean
+
+### Multiple contitions with else if
+
+```rust
+fn main() {
+    let number = 6;
+
+    if number % 4 == 0 {
+        println!("number is divisible by 4");
+    } else if number % 3 == 0 {
+        println!("number is divisible by 3");
+    } else if number % 2 == 0 {
+        println!("number is divisible by 2");
+    } else {
+        println!("number is not divisible by 4, 3, or 2");
+    }
+}
+```
+
+### Using if in let statement
+
+```rust
+fn main() {
+    let condition = true;
+    let number = if condition { 5 } else { 6 };
+
+    println!("The value of number is: {number}");
+}
+```
+
+### Repetition with Loops
+
+- Rust have three kinds of loops :`loop` ,`while` and `for`
+- The `loop` keyword tells Rust to execute a block of code over and over again forever or until you explicitly tell it to stop.
+
+### Returing Values from Loops
+
+```rust
+fn main() {
+  let mut counter = 0;
+
+  let result = loop {
+    counter += 1
+    if counter == 10 {
+      break counter * 2;
+    }
+  };
+  println!("The result is {result}");
+}
+```
