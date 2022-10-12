@@ -333,3 +333,73 @@ fn main() {
   println!("The result is {result}");
 }
 ```
+
+## Loop Labels to Disamibiguate Between Multiple Loops
+
+- you can name (label them) loops within loops and use with `break` or `continue`.
+- loops labels must begin with a single quotes.
+
+```rust
+fn main() {
+  let mut count = 0;
+  'counting_up: loop {
+    println!("count = {count}");
+    let mut remaining = 10;
+
+    loop {
+      println!("remaining = {remaining}");
+      if remaining == 9 {
+        break;
+      }
+      if count == 2 {
+        break 'counting_up;
+      }
+      remaining -= 1;
+    }
+    count +=1;
+  }
+  println!("end of the count = {count}");
+}
+```
+
+## Contitional Loops with `while`
+
+E.g.:
+
+```rust
+fn main() {
+    let mut number = 3;
+
+    while number != 0 {
+        println!("{number}!");
+
+        number -= 1;
+    }
+
+    println!("LIFTOFF!!!");
+}
+```
+
+## Looping through a Collection with `for`
+
+```rust
+fn main() {
+    let a = [10, 20, 30, 40, 50];
+
+    for element in a {
+        println!("the value is: {element}");
+    }
+}
+```
+
+- we can use also `rev` in for loop to reverse the for-loop
+
+```rust
+fn main() {
+  for number in (1..4).rev() {
+    println!("{number}!");
+    println!("LiftOff!!");
+    println!("sdlkj = {sadk}");
+  }
+}
+```
