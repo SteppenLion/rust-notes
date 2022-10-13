@@ -256,3 +256,186 @@ fn change(some_string: &mut String) {
 
 - creating mutable reference with `&mut s` where we call `change` function and update the function signature to accept a mutable refence.
 - one restriction of mutable refrences is that if you have mutable refrence to a value you only can have one reference to that value.
+- this is speciality of Rust. This restriction is for Rust to prevent data races at compile time.
+- _data races_ is similar to race condition and happens when these three behaviours occur:
+
+  1. Two or more pointers access the same data at the same time
+  2. At least one of the pointers is being used to write to the data
+  3. there is no mechnism being used to synchronize access to the data
+
+- data races cause undefined behaviour and can be difficult to diagnose and fix
+
+- we can always use curly brackets to crate a new scope, allowing for multiple mutalbe references, just not _simultaneous_ ones:
+
+```rust
+fn main() {
+  let mut s = String::from("hello");
+  {
+    let r1 = &mut s;
+  } // r1 goes out of scope here, so we can make a new reference with no problems
+  let r2 = &mut s;
+}
+```
+
+- we also can not have a mutable refence while we have an immutable one to the same value.
+- this code will run because the last usage of the immutable refences the `println!` occurs before the mutable refence is introduced
+
+```rust
+fn main() {
+  let mut s = String::from("hello");
+  let r1 = &s;
+  let r2 = &s;
+  println!("{} and {}",r1,r2);
+
+  let r3 = &mut s;
+  println!("{}",r3);
+} // these references don't overlap so it is no problem
+```
+
+- The ability of the compiler to tell that a refence is no longer being used at a point before the end of the scope is called _Non-Lexical Lifetimes_ (NLL for short)
+
+## Dangling References
+
+- in languages with pointers it is easy to create dangling pointers -> pointer that refences a location in memory that may have been given to someone else ==> by freeing some memory while preserving a pointer to that memory
+- Rust compiler guarantees that reference will never be dangling refrence
+- compiler will ensure that your data will not go out of scope before the reference to the data does.
+
+```rust
+fn main() {
+  let reference_to_nothing = dangle();
+}
+fn dangle() -> &String {
+  let s = String::from("hello");
+  &s
+}
+// $ cargo run
+//    Compiling ownership v0.1.0 (file:///projects/ownership)
+// error[E0106]: missing lifetime specifier
+//  --> src/main.rs:5:16
+//   |
+// 5 | fn dangle() -> &String {
+//   |                ^ expected named lifetime parameter
+//   |
+//   = help: this function's return type contains a borrowed value, but there is no value for it to be borrowed from
+// help: consider using the `'static` lifetime
+//   |
+// 5 | fn dangle() -> &'static String {
+//   |                ~~~~~~~~
+
+// For more information about this error, try `rustc --explain E0106`.
+// error: could not compile `ownership` due to previous error
+```
+
+- beacue the `s` is created inside `dangle` when the code is the of the `dangle` the `s` will be delocated. But we try to return reference to it. So reference will be pointing to an invalid `String`
+- solution is to return `String` directly:
+
+```rust
+fn main() {
+    let string = no_dangle();
+}
+fn no_dangle() -> String {
+    let s = String::from("hello");
+    s
+}
+```
+
+## The Rules of References
+
+- at any given time tou can have either one mutalbe reference or any number of immutable references.
+- References must always be valid
+
+## The Slice type
+
+- _Slices_ let you refence a contigous sequence of elements in collection rather than the whole collection. A slice is a kind of refence, so it does not have ownership.
+- on the function, that takes a string of words separeted by spaces and returns the first word it finds in the string, we explain the slices
+
+```rust
+fn first_word(s: String) -> usize {
+  let bytes = s.as_bytes();
+
+  for (i, &item) in bytes.iter().enumerate() {
+    if item == b' '{
+      return i;
+    }
+  }
+  s.len()
+}
+fn main(){
+  let mut s = String::from("hello world");
+  let word = first_word(&s); // word will get the value 5
+  s.clear(); // this empties the String, making it equal to ""
+  // word still has the value 5 here, but there's no more string that
+  // we could meaningfully use the value 5 with. word is now totally invalid!
+
+}
+```
+
+- we use `iter` method that returns each element in a collection and that `enumerate` wraps the result of `iter` and returns each element as part of tuple instead. First in tuple is index and second is element as refence to the element. (better than calculating the index ourselves).
+- we are returnin `usize` on its own -> but it is meaningful number in the context of the `&String`. Becouse its a separeted value from the `String` there no guarantee that it will still be valid in the future.
+- getting to worry about index in `word` getting out of sync with the data in `s` is tedious and error prone. Iss more tedious if we need track second word with a new function -> new variables and so on.
+
+## String slices
+
+- _string slices_ is reference to part of a `String` and it looks like this:
+
+```rust
+fn main() {
+  let s = String::from("heelo world");
+  let hello = &s[0..5];
+  let world = &s[6..11];
+}
+```
+
+- rather to reference to entire `String` , variable `hello` is refrence to a portion of the `String`
+- if you want to start at zero you can drop the value before the two periods like this `[..4]` or if you want to the end you can drop the last value -> `[6..]`
+- if you want entire string -> `[..]`
+
+```rust
+fn first_word(s: &String) -> &str {
+    let bytes = s.as_bytes();
+
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[0..i];
+        }
+    }
+
+    &s[..]
+}
+// add #![allow(unused_variables)] at top of the file to prevent compile errors
+fn main() {
+    let my_string = String::from("hello world");
+
+    // `first_word` works on slices of `String`s, whether partial or whole
+    let word = first_word(&my_string[0..6]);
+    let word = first_word(&my_string[..]);
+    // `first_word` also works on references to `String`s, which are equivalent
+    // to whole slices of `String`s
+    let word = first_word(&my_string);
+
+    let my_string_literal = "hello world";
+
+    // `first_word` works on slices of string literals, whether partial or whole
+    let word = first_word(&my_string_literal[0..6]);
+    let word = first_word(&my_string_literal[..]);
+
+    // Because string literals *are* string slices already,
+    // this works too, without the slice syntax!
+    let word = first_word(my_string_literal);
+}
+```
+
+## Other Slices
+
+- we can also refer to a part of an array:
+
+```rust
+#![allow(unused)]
+fn main() {
+  let a = [1,2,3,4];
+  let slice = &a[1..3];
+  assert_eq!(slice,&[2,3]);
+}
+```
+
+- slices ensures memory safety in Rust Programs at compile time.
