@@ -28,5 +28,6 @@ fn main() {
     // basic math
     println!("The sumation of 4 + 3 = {}", 4 + 3);
     print!("print! function will not put new line,  ");
-    print!("only the println! function will")
+    print!("only the println! function will");
+    println!("modulo of 5 and 2 is: {}", 5 % 2);
 }
