@@ -60,19 +60,37 @@
 // }
 
 // Adding Useful Functionality with Derived Traits
+// #[derive(Debug)]
+// struct Rectangle {
+//     width: u32,
+//     height: u32,
+// }
+
+// fn main() {
+//     let rect1 = Rectangle {
+//         width: 30,
+//         height: 50,
+//     };
+//     // tree ways to see debug lines:
+//     println!("rect1 is {:?}\n", rect1);
+//     println!("rect1 is {:#?}'\n", rect1);
+//     dbg!(&rect1);
+// }
+
 #[derive(Debug)]
 struct Rectangle {
     width: u32,
     height: u32,
 }
-
+impl Rectangle {
+    fn square(size: u32) -> Self {
+        Self {
+            width: size,
+            height: size,
+        }
+    }
+}
 fn main() {
-    let rect1 = Rectangle {
-        width: 30,
-        height: 50,
-    };
-    // tree ways to see debug lines:
-    println!("rect1 is {:?}\n", rect1);
-    println!("rect1 is {:#?}'\n", rect1);
-    dbg!(&rect1);
+    let sq = Rectangle::square(3);
+    println!("Square is : {:?}", sq);
 }
