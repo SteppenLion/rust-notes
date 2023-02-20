@@ -119,7 +119,7 @@ fn main() {
 }
 ```
 
-## Storing UTF-8 Encoded Text wiht String
+## Storing UTF-8 Encoded Text with String
 
 - Rust has only one sting type in the core language, which is the string slice `str` that is usually seen in its borrowed form `&str`
 

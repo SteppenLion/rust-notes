@@ -259,7 +259,7 @@ fn main() {
 }
 
 fn plus_one(x: i32) -> i32 {
-    x + 1; // ERROR -> changing it from an expression to a statement, we’ll get an error.
+    x + 1; // ERROR -> changing it from an expression to a statement, we'll get an error.
 }
 ```
 

@@ -121,7 +121,7 @@ fn main() {
 }
 ```
 
-- The `..user1` must come last to specify that any remaining fields should get their values from the corresponding fields in `user1`, but we can choose to specify values for as many fields as we want in any order, regardless of the order of the fields in the struct’s definition.
+- The `..user1` must come last to specify that any remaining fields should get their values from the corresponding fields in `user1`, but we can choose to specify values for as many fields as we want in any order, regardless of the order of the fields in the struct's definition.
 
 ## Using Tuple Structs without Named Fields to Create Different Types
 
