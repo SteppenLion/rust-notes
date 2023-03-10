@@ -59,6 +59,12 @@ fn main() {
 - if we use indexing and the element is not present in the vector => this will cause the program to panic.
 - by using `get` method we can passed this issue by returning `None` without panicing.
 
+```rust
+let v = vec![2,4,6,2];
+let does_not_exist = &v[100]; // it will panic becouse we are referencing not existing element
+let does_not_exist = v.get(100); // returns None without panicking
+```
+
 ### Iterating over the Values in a Vector
 
 - example of `for` loop
