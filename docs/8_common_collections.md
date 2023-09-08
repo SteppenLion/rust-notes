@@ -165,3 +165,16 @@ fn main() {
   s.push_str("bar");
 }
 ```
+
+- `push_str` method takes a string slice becouse we don't necessarily want to take ownership of the parameter. for example we can to be able to use `s2` after appending its content to `s1`
+
+```rust
+fn main() {
+  let mut s1 = String::from("foo");
+  let s2 = "bar";
+  s1.push_str(s2);
+  println!("s2 is {s2}");
+}
+```
+
+**Concatennation wiht the `+` operator or the `format!` macro**
