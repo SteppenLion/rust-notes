@@ -521,3 +521,17 @@ this function's return type contains a borrowed value, but the signature does no
 ```
 
 - One lifetime annotation by itself doesn't have much meaning, because the annotations are meant to tell Rust how generic lifetime parameters of multiple references relate to each other
+
+## Lifetime Annotation in Function Signatures
+
+- to use the lifetime annotations in function signatures we need to declare the generic lifetime parameters inside angle brackets between the function name and the parameter list
+
+```rust
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+  if x.len() > y.len() {
+    x
+  } else {
+    y
+  }
+}
+```
