@@ -535,3 +535,166 @@ fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
   }
 }
 ```
+
+- the function signature tell us that some lifetime `'a` the function takes two parametets both of witch are string slices that live at lrast as long as lifetime `'a`. Also signature tells us that the string slice returned from the function will live at least as long as lifetime `'a`.
+- in practice it means that the lifetime of the reference returned by the fucntion is the same as the smaller of the lifetimes of the vlaues referred to by the function arguments.
+- we are specifing for the borrow checker that it should reject any vlaues that don't adhere to these constrains. Above function does not need to know exactlyhow long `x` an `y` will live, only that some scope can be suvstituted for `'a` that will satisfy this signature.
+- when we passed concrete references to `longest` function the concrete lifetimes that is substituted for `'a` is the part of the scope of `x` that overlaps with the scope `y`
+- generic lifetime `'a` will get concrete lifetime that is equal to smaller of the lifetimes of `x` and `y` and also the return reference.
+- let's look how the lifetime annotations restrict `longest` function by passing in references that have differnet concrete lifetimes.
+
+```rust
+fn main() {
+  let string1 = String::from("long string is long");
+
+  {
+    let string2 = String::from("xyz");
+    let result = longest(string1.as_str(),string2.as_str());
+    println!("The longest string is {}", result);
+  }
+}
+```
+
+- above code is valid as the string1 is valid until end of outer scope and string2 is valid until end of inner scope and same for result.
+- let see example where lifetime of the reference in result must be the smaller lifetime of the two arguments.
+
+```rust
+fn main() {
+  let string1 = String::from("long string is long");
+  let result;
+  {
+    let string2 = String::from("xyz");
+    result = longest(string1.as_str(), string2.as_str());
+  }
+  println!("The longest string is {}", result);
+}
+```
+
+- this is not valid code as the rerurned reference takes smaller lifetime of two arguments (smaller is form `string2`) and the compiler prompt us with error: `borrowed value does not live long enough`
+
+## Thinking in Terms of Lifetimes
+
+- specifing the lifetime in the function depends on what your function is doing.
+- if we change the `longest` fucntion to return the first parameter rather than string slices:
+
+```rust
+fn longest<'a>(x:&'a str, y: &str) -> &'a str {
+  x
+}
+```
+
+- we have specify the a lifetime parameter `'a` for the parameter `x` and the retun type but not for parameter `y`. Because the lifetime parameter does not have any relationship with the lifetime of `x` or the return value.
+- When returning a reference from a function, the lifetime parameter for the return type needs to match the lifetime parameter for one of the parameters
+- If the reference returned does not refer to one of the parameters, it must refer to a value created within this function. However, this would be a dangling reference because the value will go out of scope at the end of the function
+- e.g. this Example:
+
+```rust
+fn longest<'a>(x: &str, y:&str) -> 'a str {
+  let result = String::from("really long string");
+  result.as_str()
+}
+```
+
+- even though we have specified a lifetime parameter `'a` for the return type this code fails to compile because the return value is not releated to the lifetimes of the parameters.
+- the result will goes out of scope at end of the function and gets cleand up.The best fix to would be returning an owned data type rather than a reference so the calling function is then responsible for cleaning up the value.
+
+## Lifetime Annotations in Struct Definitions
+
+```rust
+struct ImportantExcerpt<'a> {
+  part: &'a str,
+}
+
+fn main() {
+  let novel = String::from("Call me Ishmael. Some years ago...");
+  let first_sentence = novel.split('.').next().expect("Could not find a '.'");
+  let i = ImportantExcerpt {
+    part: first_sentence,
+  };
+}
+```
+
+- The `main` function here creates an instance of the `ImportantExcerpt` struct that holds a reference to the first sentence of the `String` owned by the variable `novel`. The data in `novel` exists before the `ImportantExcerpt` instance is created. In addition, `novel` doesn't go out of scope until after the `ImportantExcerpt` goes out of scope, so the reference in the `ImportantExcerpt` instance is valid
+
+## Lifetime Elision
+
+- we know that every reference has a lifetime and we need to specify the lifetime parameters. Some of the fuctions that we show does not have specified liefetime annotations and yet they compile without problem.
+
+```rust
+// Example:
+fn first_word(s: &str) -> &str {
+  let bytes = s.as_bytes();
+  for (i, &item) in bytes.iter().enumerate() {
+    if item == b' ' {
+      return &s[0..i];
+    }
+  }
+  &s[..]
+}
+```
+
+- the reason is historical, early versions of Rust (< 1.0) this code would not compile as every reference need explicit lifetime.
+- core dev team found out that they put the same lifetime annotations over and over in particular situations. These patterns have been put in the code so if the compiler code so the borrow checker could not infer the lifetimes in these situations
+- the patterns programmed into Rust's analysis of references are called _lifetime elision rules_. Are for input and output lifetimes. Lifetimes on fucntion or method parameters are called _input lifetimes_ an lifetimes on output values are called _output lifetimes_
+  1. FIRST RULE: the compiler assigns a lifetime parameter to each parameter that's a reference. In other words, a function with one parameter gets one lifetime parameter: `fn foo<'a>(x: &'a i32)`; a function with two parameters gets two separate lifetime parameters: `fn foo<'a, 'b>(x: &'a i32, y: &'b i32)`; and so on.
+  2. SECOND RULE: there is exactly one input lifetime parameter, that lifetime is assigned to all output lifetime parameters: `fn foo<'a>(x: &'a i32) -> &'a i32`
+  3. THIRD RULE: there are multiple input lifetime parameters, but one of them is `&self` or `&mut self` because this is a method, the lifetime of `self` is assigned to all output lifetime parameters.
+
+## Lifetime Annotation in Method Definitions
+
+- when we implement methods on a struct with lifetime we use same syntax as in generic type parameters
+- where we declare and use the lifetime parameters depends on whether they are related to the struct fields ot he method parameters and return values
+- in method signature inside the `impl` block references might be tied to the lifetime of references in the struct's fields or they might be independent
+- often I(elision rules) the lifetime annotation are not necessary in method signatures
+
+```rust
+impl<'a> ImportantExcerpt<'a> {
+  fn level(&self) -> i32 {
+    3
+  }
+}
+```
+
+- the liefetime parameter declaration after `impl` and itsuse after the type name are required but we are not required to annotate the lifetime of the reference to `self` because of the first elision rule
+- Example where the third elision rule apply:
+
+```rust
+impl<'a> ImportantExcerpt<'a> {
+  fn announce_and_return_part(&self, annoucment: &str) -> &str {
+    println!("Attention plese: {}", annoucment);
+    self.part
+  }
+}
+```
+
+- as there are two parameters the Rust gives their own lifetime but as the one parameter is `&self` the return type gets the lifetime of the `&self`. So every lifetime is covered.
+
+## Static Lifetime
+
+- special lifetime: `'static` which denotes that the affected reference can live for entire duration of the program. All sting literals have the `'static` lifetime, which we can annote as follows:
+
+```rust
+let s: &'static str = "I have static lifetime";
+```
+
+- text of this string is stored directly in the program's binary which is always available. Therefor the lifetime is `'static`
+
+## Generic Type Parameters, Triat Bounds, and Lifetimes Together
+
+```rust
+use std::fmt::Display;
+
+fn longest_with_an_annoucment<'a, T>(x: &'a str, y: &'a str, ann: T) -> &'a str
+where
+  T: Display,
+{
+  println!("Annoucment {}", ann);
+  if x.len() > y.len() {
+    x
+  } else {
+    y
+  }
+}
+```
+
+- because the lifetimes are a type of genercic, the declaration of the lifetime parameter `'a` and the generic type parameter `T` go in the same list inside the angle brackets after the fucntion name
