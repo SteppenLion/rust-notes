@@ -308,3 +308,77 @@ assert_eq!(v2, vec![4,6,57]);
 ```
 
 ## Using Closures that Capture Their Environment
+
+- many iterator adapters take closures as arguments, and ommonly he closures we will specify as arguments to iterator adapters will be closures that capture their enviroment
+
+```rust
+#[derive(PartialEq, Debug)]
+struct Shoe {
+  size: u32,
+  style: String,
+}
+
+fn shoes_in_size(shoes: Vec<Shoe>, shoe_size: u32) -> Vec<Shoe> {
+  shoes.into_iter().filter(|s| s.size == shoe_size).collect()
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  #[test]
+  fn filters_by_size() {
+    let shoes = vec![
+      Shoe {
+        size: 10,
+        style: String::from("sneaker"),
+      },
+      Shoe {
+        size: 13,
+        style: String::from("sandal"),
+      },
+      Shoe {
+        size: 10,
+        style: String::from("boot"),
+      },
+      ];
+    let in_my_size = shoes_in_size(shoes, 10);
+    assert_eq!(
+      in_my_size,
+      vec![
+        Shoe {
+          size: 10,
+          style: String::from("sneaker")
+        },
+        Shoe {
+          size: 10,
+          style: String::from("boot")
+        },
+      ]
+    );
+  }
+}
+```
+
+## Comparing Performance: Loops vs. Iterators
+
+- if we run the iterators vs for loop on large of the text the win will take the iterators
+- the reason is that iterators, although a high level abstration, get compiled down to roughly the same code as if you would writtenthe lower-level code yourself.
+- iterators are one of Rust's _zero-cost abstration_, by which means using the abstration imposes no additional runtime overhead
+
+```rust
+let buffer: &mut [i32];
+let coefficients: [i64; 12];
+let qlp_shift: i16;
+
+for i in 12..buffer.len() {
+  let prediction = coefficients.iter()
+                               .zip(&buffer[i - 12..i])
+                               .map(|(&c, &s)| c * s as i64)
+                               .sum::<i64>() >> qlp_shift;
+  let delta = buffer[i];
+  buffer[i] = prediction as i32 + delta;
+}
+```
+
+- The above decoding algorithm uses the linear prediction mathematical operation to estimate future values based on a linear function of the previous samples. This code uses an iterator chain to do some math on three variables in scope: a `buffer` slice of data, an array of 12 `coefficients`, and an amount by which to shift data in `qlp_shift`.
+- To calculate the value of prediction, this code iterates through each of the 12 values in `coefficients` and uses the `zip` method to pair the coefficient values with the previous 12 values in `buffer`. Then, for each pair, we multiply the values together, sum all the results, and shift the bits in the sum `qlp_shift` bits to the right.
