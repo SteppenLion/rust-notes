@@ -339,4 +339,202 @@ where
 
 ## Keeping Track of Borrows at Runtime with `RefCell<T>`
 
+- when creating immutable and mutable references we use `&` and `&mut` syntax
+- with `RefCell<T>` we use the `borrow` and `borrow_mut` methods which are part of safe API tha belnogs to `RefCell<T>`. The `borrow` method returns the smart pointer type `Ref<T>` and `borrow_mut` returns the smart pointer type `RefMut<T>`. Both types implement `Deref`
+- The `RefCell<T>` keeps track od how many `Ref<T>` and `RefMut<T>` smart pointers are currently active. Each time we call `borrow` the count is increases how many immutable borrows are active. When a `Ref<T>` value goes out of scope the count of immutable borrows goes down by one. Just like compile time borrowing rules, `RefCell<T>` lets us have many immutable borrows or one mutable borrow at any point in time.
+- if we violate these rules we will get panic at runtime (not compile error)
+
 ## Having Multiple Owners of Mutable Data by Combining `Rc<T>` and `RefCell<T>`
+
+- common way to use `RefCell<T>` is in combination with `Rc<T>`. If we have `Rc<T>` that holds a `RefCell<T>` you can get value that can have multiple owneres and you can mutate
+
+```rust
+#[derive(Debug)]
+enum List {
+  Cons(Rc<RefCell<i32>>,Rc<List>)
+}
+
+use create::List::{Cons,Nil};
+use std::cell::RefCell;
+use std::rc::Rc:
+
+fn main() {
+  let value = Rc::new(RefCell::new(5));
+
+  let a = Rc::new(Cons(Rc::clone(&value), Rc::new(Nil)));
+  let b = Cons(Rc::new(RefCell::new(3)), Rc::clone(&a));
+  let c = Cons(Rc::new(RefCell::new(4)), Rc::clone(&a));
+
+  *value.borrow_mut() += 10;
+
+   println!("a after = {:?}", a);
+   println!("b after = {:?}", b);
+   println!("c after = {:?}", c);
+}
+```
+
+- This technique is pretty neat! By using `RefCell<T>`, we have an outwardly immutable List value. But we can use the methods on `RefCell<T>` that provide access to its interior mutability so we can modify our data when we need to.
+- **Note** that `RefCell<T>` does not work for multithreaded code!
+- `Mutex<T>` is the thread-safe version of `RefCell<T>`
+
+## Reference Cycles Can Leak Memory
+
+- We can see that Rust allows memory leaks by using `Rc<T>` and `RefCell<T>`: it’s possible to create references where items refer to each other in a cycle.
+- this will create memory leaks, because count of each item in the cycle will never reach 0, and the values will never be dropped
+
+## Creating a Reference Cycle
+
+```rust
+use crate::List::{Cons, Nil};
+use std::cell::RefCell;
+use std::rc::Rc;
+
+#[derive(Debug)]
+enum List {
+  Cons(i32, RefCell<Rc<List>>),
+  Nil,
+}
+
+impl List {
+  fn tail(&self) -> Option<&RefCell<Rc<List>>> {
+    match self {
+      Cons(_, item) => Some(item),
+      Nil => None,
+    }
+  }
+}
+
+fn main() {
+  let a = Rc::new(Cons(5, RefCell::new(Rc::new(Nil))));
+  println!("a initial rc count = {}", Rc::strong_count(&a));
+  println!("a next item = {:?}", a.tail());
+  let b = Rc::new(Cons(10, RefCell::new(Rc::clone(&a))));
+  println!("a rc count after b creation = {}", Rc::strong_count(&a));
+  println!("b initial rc count = {}", Rc::strong_count(&b));
+  println!("b next item = {:?}", b.tail());
+  if let Some(link) = a.tail() {
+      *link.borrow_mut() = Rc::clone(&b);
+  }
+  println!("b rc count after changing a = {}", Rc::strong_count(&b));
+  println!("a rc count after changing a = {}", Rc::strong_count(&a));
+  // Uncomment the next line to see that we have a cycle;
+  // it will overflow the stack
+  // println!("a next item = {:?}", a.tail());
+}
+```
+
+- If we uncomment the last println! and run the program, Rust will try to print this cycle with `a` pointing to `b` pointing to `a` and so forth until it overflows the stack.
+- one of the solution for avoiding reference cycles is reorganizing data structure so that some reference express ownership and some reference don't. As result we can have cycles made up of some ownership relationships and some non-ownership relationships and only the ownership relationships affects whether or not a value can be dropped.
+
+## Preventing Reference Cycles: Turning an `Rc<T>` into a `Weak<T>`
+
+- Strong references are how we can share ownership of an `Rc<T>` instance. Weak references do not express an ownership relationship, and their count does not affect when an `Rc<T>` instance is cleaned up. They won't cause a reference cycle because any cycle involving some weak references will be broken once the strong reference count of values involed is 0
+- because the value that `Weak<T>` refer might have been dropped, to do anything with the value that a `Weak<T>` is pointing to, we must make sure the value still exist. To do this we can call `upgrade`method on a `Weak<T>` instance, which will return an `Option<Rc<T>>`. We will get rseutl of `Some` if the `Rc<T>` value has not been dropped yet and result of `None` if it has been dropped
+
+## Creating a Tree Data Structure: a Node with Child Nodes
+
+```rust
+use std::cell::RefCell;
+use std::rc::Rc;
+
+#[derive(Debug)]
+struct Node {
+  value: i32,
+  children: RefCell<Vec<Rc<Node>>>,
+}
+
+fn main() {
+  let leaf = Rc::new(Node {
+    value: 3,
+    children: RefCell::new(vec![]),
+  });
+  let branch = Rc::new(Node {
+    value: 5,
+    children: RefCell::new(vec![Rc::clone(&leaf)])
+  });
+}
+```
+
+- we clone the `Rc<Node>` in `leaf` and store that in branch meaning the `Node` in `leaf` now has two owneres: `leaf` and `branch`. We can get from `branch` to `leaf` through `branch.children` but there is no way to get from `leaf` to `branch`. The reason is that `leaf` has no reference to `branch` and does not know they are related.
+
+## Adding a Reference from Child to Its Parent
+
+- Thinking about the relationships another way, a parent node should own its children: if a parent node is dropped, its child nodes should be dropped as well. However, a child should not own its parent: if we drop a child node, the parent should still exist. This is a case for weak references!
+- so instead of `Rc<T>` we will make the type of `parent` use `Weak<T>` specifically a `Ref<Weak<Node>>`
+
+```rust
+use std::cell::RefCell;
+use std::rc::{Rc,Weak};
+
+#[derive(Debug)]
+struct Node {
+  value: i32,
+  parent: RefCell<Weak<Node>>,
+  children: RefCell<Vec<Rc<Node>>>,
+}
+
+fn main() {
+  let leaf = Rc::new(Node {
+    value: 3,
+    parent: RefCell::new(Weak::new()),
+    children: RefCell::new(vec![]),
+  });
+
+  println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+
+  let branch = Rc::new(Node {
+      value: 5,
+      parent: RefCell::new(Weak::new()),
+      children: RefCell::new(vec![Rc::clone(&leaf)]),
+  });
+
+  *leaf.parent.borrow_mut() = Rc::downgrade(&branch);
+
+  println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+}
+```
+
+## Visualizing Changes to `strong_count` and `weak_count`
+
+```rust
+fn main() {
+  let leaf = Rc::new(Node {
+    value: 3,
+    parent: RefCell::new(Weak::new()),
+    children: RefCell::new(vec![]),
+  });
+
+  println!(
+    "leaf strong = {}, weak = {}",
+    Rc::strong_count(&leaf),
+    Rc::weak_count(&leaf),
+  );
+
+  {
+    let branch = Rc::new(Node {
+        value: 5,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![Rc::clone(&leaf)]),
+    });
+
+    *leaf.parent.borrow_mut() = Rc::downgrade(&branch);
+    println!(
+        "branch strong = {}, weak = {}",
+        Rc::strong_count(&branch),
+        Rc::weak_count(&branch),
+    );
+    println!(
+        "leaf strong = {}, weak = {}",
+        Rc::strong_count(&leaf),
+        Rc::weak_count(&leaf),
+    );
+  }
+
+  println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+  println!(
+      "leaf strong = {}, weak = {}",
+      Rc::strong_count(&leaf),
+      Rc::weak_count(&leaf),
+  );
+}
+```
