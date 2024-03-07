@@ -42,7 +42,6 @@ fn part2(filename: &str) -> i32 {
             tmp = tmp.replace(NUM_STRINGS[backwards-1],&backwards.to_string());
             backwards-=1;
         }
-        // println!("{:?}",tmp);
         let split_to_char: Vec<char> = tmp.chars().collect();
         let mut line_vec: Vec<i32> = Vec::new();
         for chars in split_to_char {
@@ -83,7 +82,6 @@ fn part_2(input: &str) -> u32 {
     for line in input.lines() {
         let mut forwards = line;
         let mut backwards = line;
-
         let first = 'outer: loop {
             for (prefix, num) in nums.iter() {
                 if forwards.starts_with(prefix) {
@@ -92,7 +90,6 @@ fn part_2(input: &str) -> u32 {
             }
             forwards = &forwards[1..];
         };
-
         let last = 'outer: loop {
             for (suffix, num) in nums.iter() {
                 if backwards.ends_with(suffix) {
@@ -101,11 +98,9 @@ fn part_2(input: &str) -> u32 {
             }
             backwards = &backwards[..backwards.len() - 1];
         };
-
         let num = first * 10 + last;
         sum += num;
     }
-
     sum
 }
 

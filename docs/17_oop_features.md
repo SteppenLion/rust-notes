@@ -40,7 +40,7 @@ impl AveragedCollection {
 
 ## Inheritance as a Type System and as Code Sharing
 
-- _Inheritance_ is a mechanism whereby an object can ingerit elements from another object's definition thus gaining the parent object's data and behaviour without you having to define them again.
+- _Inheritance_ is a mechanism whereby an object can inherit elements from another object's definition thus gaining the parent object's data and behaviour without you having to define them again.
 - Rust does not have a way to to define struct that inherits the parent struct's field and methods implementations without using macro
 - in Rust we can do inheritance in a limited way using default implementation of the `summrize` method on the `Summary` trait.
 - The other reason to use inheritance relates to the type system: to enable a child type to be used in the same places as the parent type. This is also called polymorphism, which means that you can substitute multiple objects for each other at runtime if they share certain characteristics.
